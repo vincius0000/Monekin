@@ -78,6 +78,7 @@ class _TransactionListComponentState extends State<TransactionListComponent> {
   ScrollController listScrollController = ScrollController();
 
   int currentPage = 1;
+  static const double _futureTransactionOpacity = 0.4;
   bool isEnabled = true;
 
   @override
@@ -171,16 +172,28 @@ class _TransactionListComponentState extends State<TransactionListComponent> {
 
                 if (index == 0) {
                   if (!widget.showGroupDivider) return Container();
-                  return dateSeparator(context, transactions[0].date);
+
+                  final transaction = transactions[0];
+                  final now = DateTime.now();
+                  final bool isFutureTransacton = transaction.date.isAfter(now);
+
+                  final Widget dateSeparatorWidget = dateSeparator(context, transaction.date);
+                  
+                  if (isFutureTransacton) {
+                    return Opacity(opacity: _futureTransactionOpacity, child: dateSeparatorWidget);
+                  }
+                  return dateSeparatorWidget;
                 }
 
                 final transaction = transactions[index - 1];
+                final now = DateTime.now();
+                final bool isFutureTransacton = transaction.date.isAfter(now);
 
                 final heroTag = widget.heroTagBuilder != null
                     ? widget.heroTagBuilder!(transaction)
                     : null;
 
-                return TransactionListTile(
+                final Widget transactionlistTileWidget = TransactionListTile(
                   transaction: transaction,
                   prevPage: widget.prevPage,
                   periodicityInfo: widget.periodicityInfo,
@@ -196,6 +209,11 @@ class _TransactionListComponentState extends State<TransactionListComponent> {
                   isSelected: widget.selectedTransactions
                       .any((element) => element.id == transaction.id),
                 );
+
+                if (isFutureTransacton) {
+                  return Opacity(opacity: _futureTransactionOpacity, child: transactionlistTileWidget);
+                }
+                return transactionlistTileWidget;
               },
               separatorBuilder: (context, index) {
                 if (index == 0 ||
@@ -204,16 +222,26 @@ class _TransactionListComponentState extends State<TransactionListComponent> {
                   return Container();
                 }
 
+                final transaction = transactions[index - 1];
+                final nextTransaction = transactions[index];
+                final now = DateTime.now();
+                final bool isNextAFutureTransacton = nextTransaction.date.isAfter(now);
+
                 if (!widget.showGroupDivider ||
                     index >= 1 &&
-                        DateUtils.isSameDay(transactions[index - 1].date,
-                            transactions[index].date)) {
+                        DateUtils.isSameDay(transaction.date,
+                            nextTransaction.date)) {
                   // Separator between transactions in the same group
                   return Container();
                 }
 
                 // Group separator
-                return dateSeparator(context, transactions[index].date);
+                final Widget dateSeparatorWidget = dateSeparator(context, transaction.date);
+
+                if (isNextAFutureTransacton) {
+                  return Opacity(opacity: _futureTransactionOpacity, child: dateSeparatorWidget);
+                }
+                return dateSeparatorWidget;
               });
         });
   }
